@@ -22,7 +22,7 @@ def main():
     subprocess_setup = ['mail',
                         '-s', 'New DOE-funded pub records w/o eSchol deposits',
                         '-a', 'output/' + filename]
-    subprocess_setup.update(creds.email_recipients)
+    subprocess_setup += creds.email_recipients
 
     # Run the subprocess
     subprocess.run(subprocess_setup,
