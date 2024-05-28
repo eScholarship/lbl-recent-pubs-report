@@ -18,15 +18,16 @@ def main():
         for row in new_lbl_pub_records:
             csv_writer.writerow(row.values())
 
-    subprocess.run(
-        [
-            'mail',
-            '-s', 'New DOE-funded pub records w/o eSchol deposits',
-            '-a', 'output/' + filename,
-            creds.email_recipient
-         ],
-        capture_output=True
-    )
+    # Set up the mail process with attachment and email recipients
+    subprocess_setup = ['mail',
+                        '-s', 'New DOE-funded pub records w/o eSchol deposits',
+                        '-a', 'output/' + filename]
+    subprocess_setup.update(creds.email_recipients)
+
+    # Run the subprocess
+    subprocess.run(subprocess_setup,
+                   input=b'\x04',
+                   capture_output=True)
 
 
 # Stub for main
