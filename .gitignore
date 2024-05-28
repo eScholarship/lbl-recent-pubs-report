@@ -1,3 +1,5 @@
 creds.py
 .idea/
-venv/
+venv
+output/*
+__pycache__/

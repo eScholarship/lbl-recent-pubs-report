@@ -24,10 +24,8 @@ def main():
                         '-a', 'output/' + filename]
     subprocess_setup += creds.email_recipients
 
-    # Run the subprocess
-    subprocess.run(subprocess_setup,
-                   input=b'\x04',
-                   capture_output=True)
+    # Run the subprocess with EOT input to send
+    subprocess.run(subprocess_setup, input=b'\x04')
 
 
 # Stub for main
