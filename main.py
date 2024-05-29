@@ -24,8 +24,15 @@ def main():
                         '-a', 'output/' + filename]
     subprocess_setup += creds.email_recipients
 
+    input_byte_string = b'''The attached CSV file includes:
+
+- DOE-funded publications
+- without eScholarship publication records
+- with EuroPMC or arXive publication records
+- with a Publication "Reporting Date 1" from the past 90 days.'''
+
     # Run the subprocess with EOT input to send
-    subprocess.run(subprocess_setup, input=b'\x04')
+    subprocess.run(subprocess_setup, input=input_byte_string,capture_output=True)
 
 
 # Stub for main
