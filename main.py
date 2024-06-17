@@ -8,20 +8,36 @@ import subprocess
 def main():
     sql_creds = creds.elements_reporting_db_server_prod
 
-    new_lbl_pub_records = elements_db_functions.get_new_lbl_pub_records(sql_creds)
+    # 90 days
+    new_ninety_day_pub_records = elements_db_functions.get_new_lbl_pub_records(
+        sql_creds, "lbl-new-pub-records-ninety-days.sql")
 
-    filename = "LBL-90-Day-pub-records-" + datetime.today().strftime('%Y-%m-%d') + ".csv"
+    ninety_day_file = "LBL-90-Day-pub-records-" + datetime.today().strftime('%Y-%m-%d') + ".csv"
 
-    with open("output/" + filename, "w") as outfile:
+    with open("output/" + ninety_day_file, "w") as outfile:
         csv_writer = csv.writer(outfile)
-        csv_writer.writerow(new_lbl_pub_records[0].keys())
-        for row in new_lbl_pub_records:
+        csv_writer.writerow(new_ninety_day_pub_records[0].keys())
+        for row in new_ninety_day_pub_records:
+            csv_writer.writerow(row.values())
+
+    # 3 fiscal years
+    new_three_year_pub_records = elements_db_functions.get_new_lbl_pub_records(
+        sql_creds, "lbl-new-pub-records-three-fiscal-year.sql")
+
+    three_year_file = "LBL-three-fiscal-year-pub-records-" + datetime.today().strftime('%Y-%m-%d') + ".csv"
+            
+    with open("output/" + three_year_file, "w") as outfile:
+        csv_writer = csv.writer(outfile)
+        csv_writer.writerow(new_three_year_pub_records[0].keys())
+        for row in new_three_year_pub_records:
             csv_writer.writerow(row.values())
 
     # Set up the mail process with attachment and email recipients
     subprocess_setup = ['mail',
                         '-s', 'New DOE-funded pub records w/o eSchol deposits',
-                        '-a', 'output/' + filename]
+                        '-a', 'output/' + ninety_day_file,
+                        '-a', 'output/' + three_year_file
+                        ]
     subprocess_setup += creds.email_recipients
 
     input_byte_string = b'''The attached CSV file includes:
@@ -32,7 +48,7 @@ def main():
 - with a Publication "Reporting Date 1" from the past 90 days.'''
 
     # Run the subprocess with EOT input to send
-    subprocess.run(subprocess_setup, input=input_byte_string,capture_output=True)
+    subprocess.run(subprocess_setup, input=input_byte_string, capture_output=True)
 
 
 # Stub for main

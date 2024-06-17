@@ -25,7 +25,7 @@ with pending_lbl_pubs as (
 			[Publication] p on pp.[Publication ID] = p.id
 		join [User] u
 			on pp.[User ID] = u.id
-			and u.[Primary Group Descriptor] like ('%lbl%')
+			and u.[Primary Group Descriptor] like ('%lbl-%')
 	where
 		p.[Reporting Date 1] > @fiscal_year_cutoff
 		or p.[publication-date] > @fiscal_year_cutoff
@@ -49,7 +49,7 @@ claimed_lbl_pubs as (
 			on p.id = pur.[Publication ID]
 		join [User] u
 			on u.id = pur.[User ID]
-			and u.[Primary Group Descriptor] like ('%lbl%')
+			and u.[Primary Group Descriptor] like ('%lbl-%')
 	where
 		p.[Reporting Date 1] > @fiscal_year_cutoff
 		or p.[publication-date] > @fiscal_year_cutoff
@@ -85,15 +85,14 @@ from
 		join [Publication record file] prf
 			on pr.id = prf.[Publication Record ID]
  			and prf.[Index] = 0
- 		join [Publication User Relationship] pur
- 			on p.id = pur.[Publication ID]
  		left join pending_lbl_pubs plp
 			on p.id = plp.ID
  		left join claimed_lbl_pubs clp
  			on p.id = clp.ID
 WHERE
 	pr.[Created When] BETWEEN @time_window AND GETDATE()
-	AND (
+	AND
+	(
 		p.id in (select ID from pending_lbl_pubs)
 		or p.id in (select ID from claimed_lbl_pubs)
 	)

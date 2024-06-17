@@ -1,10 +1,10 @@
 import pyodbc
 
 
-def get_new_lbl_pub_records(sql_creds):
+def get_new_lbl_pub_records(sql_creds, input_file):
 
     # Load SQL file
-    sql_file = open("lbl-new-pub-records.sql")
+    sql_file = open(input_file)
     sql_query = sql_file.read()
 
     # Connect to Elements reporting db
