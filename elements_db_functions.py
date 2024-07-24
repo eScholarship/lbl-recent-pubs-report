@@ -16,7 +16,7 @@ def get_new_lbl_pub_records(sql_creds, input_file):
         pwd=sql_creds['password'],
         trustservercertificate='yes')
 
-    print("Connected to Elements reporting DB. Querying for new LBL auto pubs")
+    print(f"Connected to Elements reporting DB, querying: {input_file}")
     conn.autocommit = True  # Required when queries use TRANSACTION
     cursor = conn.cursor()
     cursor.execute(sql_query)

@@ -25,7 +25,7 @@ def main():
 
     # Set up the mail process with attachment and email recipients
     subprocess_setup = ['mail',
-                        '-s', 'New DOE-funded pub records w/o eSchol deposits',
+                        '-s', 'New LBL pub records without eSchol deposits',
                         '-a', ninety_day_file,
                         '-a', three_year_file,
                         '-a', with_preprint_file]
@@ -34,20 +34,22 @@ def main():
     # Text in the email body
     input_byte_string = b'''The attached CSV files show:
     
-<h2>LBL-90-Day-pub-records</h2>
+LBL-90-Day-pub-records:
 - Pubs without eScholarship records having an associated file deposit.
-  - Note: OA location URLS are listed where available (seems a rare occurance, though) 
+  - eSchol OA location URLS are listed where present. 
 - with EuroPMC or arXive publication records
 - with a Publication "Reporting Date 1" from the past 90 days.
 - The sheet is ordered by "most likely candidates" first:
   -  Pub type Journal Article > Preprint
   -  Claimed authors > Pending authors
 
-<h2>LBL-three-fiscal-year-pub-records</h2>
+
+LBL-one-fiscal-year-pub-records:
 - Same as above, but without the 90-day cutoff.
 - Records are pulled from the start of the previous fiscal year.
 
-<h2>LBL-90-day-pubs-with-preprint-files</h2>
+
+LBL-90-day-pubs-with-preprint-files:
 - New LBL publications
 - Created in the past 90 days
 - Without file deposits (OA Locations are noted when available)
