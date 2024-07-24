@@ -97,6 +97,7 @@ select
 	distinct rp.[Publication ID],
 	CONCAT('https://oapolicy.universityofcalifornia.edu/viewobject.html?cid=1&id=',rp.[Publication ID]) as [Elements URL],
 	p.[Title],
+	p.[doi],
 	p.[Type],
 	rp.[Data Source],
 	rp.[Data Source Proprietary ID],

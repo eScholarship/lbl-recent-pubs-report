@@ -60,6 +60,7 @@ select
 	distinct p.id as [New Pub ID],
 	CONCAT('https://oapolicy.universityofcalifornia.edu/viewobject.html?cid=1&id=',p.id) as [New Pub URL],
 	p.title,
+	p.[doi],
 	ppr.[Reversed Type] as [Relationship],
 	ppr.[Publication 1 ID] as [Preprint Pub ID],
 	CONCAT('https://oapolicy.universityofcalifornia.edu/viewobject.html?cid=1&id=',ppr.[Publication 1 ID]) as [Preprint Pub URL],
@@ -102,6 +103,7 @@ where
 group by
 	p.id,
 	p.title,
+	p.doi,
 	ppr.[Reversed Type],
 	ppr.[Publication 1 ID],
 	related_pr.[Data Source],
