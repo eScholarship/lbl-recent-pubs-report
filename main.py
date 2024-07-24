@@ -11,44 +11,62 @@ def main():
     # 90 days
     new_ninety_day_pub_records = elements_db_functions.get_new_lbl_pub_records(
         sql_creds, "lbl-new-pub-records-ninety-days.sql")
-
-    ninety_day_file = "LBL-90-Day-pub-records-" + datetime.today().strftime('%Y-%m-%d') + ".csv"
-
-    with open("output/" + ninety_day_file, "w") as outfile:
-        csv_writer = csv.writer(outfile)
-        csv_writer.writerow(new_ninety_day_pub_records[0].keys())
-        for row in new_ninety_day_pub_records:
-            csv_writer.writerow(row.values())
+    ninety_day_file = write_csv_file(new_ninety_day_pub_records, "LBL-90-Day-pub-records")
 
     # 3 fiscal years
-    new_three_year_pub_records = elements_db_functions.get_new_lbl_pub_records(
-        sql_creds, "lbl-new-pub-records-three-fiscal-year.sql")
+    new_fiscal_year_pub_records = elements_db_functions.get_new_lbl_pub_records(
+        sql_creds, "lbl-new-pub-records-one-fiscal-year.sql")
+    three_year_file = write_csv_file(new_fiscal_year_pub_records, "LBL-one-fiscal-year-pub-records")
 
-    three_year_file = "LBL-three-fiscal-year-pub-records-" + datetime.today().strftime('%Y-%m-%d') + ".csv"
-            
-    with open("output/" + three_year_file, "w") as outfile:
-        csv_writer = csv.writer(outfile)
-        csv_writer.writerow(new_three_year_pub_records[0].keys())
-        for row in new_three_year_pub_records:
-            csv_writer.writerow(row.values())
+    # New 90-day pubs with preprint files available
+    new_pubs_with_preprints = elements_db_functions.get_new_lbl_pub_records(
+        sql_creds, "lbl-new-pubs-with-preprint-files-available.sql")
+    with_preprint_file = write_csv_file(new_pubs_with_preprints, "LBL-90-day-pubs-with-preprint-files")
 
     # Set up the mail process with attachment and email recipients
     subprocess_setup = ['mail',
                         '-s', 'New DOE-funded pub records w/o eSchol deposits',
-                        '-a', 'output/' + ninety_day_file,
-                        '-a', 'output/' + three_year_file
-                        ]
+                        '-a', ninety_day_file,
+                        '-a', three_year_file,
+                        '-a', with_preprint_file]
     subprocess_setup += creds.email_recipients
 
-    input_byte_string = b'''The attached CSV file includes:
-
-- DOE-funded publications
-- without eScholarship publication records
+    # Text in the email body
+    input_byte_string = b'''The attached CSV files show:
+    
+<h2>LBL-90-Day-pub-records</h2>
+- Pubs without eScholarship records having an associated file deposit.
+  - Note: OA location URLS are listed where available (seems a rare occurance, though) 
 - with EuroPMC or arXive publication records
-- with a Publication "Reporting Date 1" from the past 90 days.'''
+- with a Publication "Reporting Date 1" from the past 90 days.
+- The sheet is ordered by "most likely candidates" first:
+  -  Pub type Journal Article > Preprint
+  -  Claimed authors > Pending authors
+
+<h2>LBL-three-fiscal-year-pub-records</h2>
+- Same as above, but without the 90-day cutoff.
+- Records are pulled from the start of the previous fiscal year.
+
+<h2>LBL-90-day-pubs-with-preprint-files</h2>
+- New LBL publications
+- Created in the past 90 days
+- Without file deposits (OA Locations are noted when available)
+- And have a related "preprint" publication with a file.
+'''
 
     # Run the subprocess with EOT input to send
     subprocess.run(subprocess_setup, input=input_byte_string, capture_output=True)
+
+
+# Writes the CSV and returns the filename for email attachment
+def write_csv_file(data, filename):
+    filename_with_date = "output/" + filename + "-" + datetime.today().strftime('%Y-%m-%d') + ".csv"
+    with open(filename_with_date, "w") as outfile:
+        csv_writer = csv.writer(outfile)
+        csv_writer.writerow(data[0].keys())
+        for row in data:
+            csv_writer.writerow(row.values())
+    return filename_with_date
 
 
 # Stub for main

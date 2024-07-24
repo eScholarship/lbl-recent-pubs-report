@@ -1,12 +1,10 @@
 SET TRANSACTION ISOLATION LEVEL SNAPSHOT
 BEGIN TRANSACTION;
 
-DECLARE @time_window AS DATE = DATEADD(day,-90, GETDATE());
-
 DECLARE @fiscal_year_cutoff date =
 	CASE WHEN (MONTH(GETDATE()) >= 10)
-        THEN CONVERT(VARCHAR, YEAR(GETDATE()) - 3) + '-10-01'
-        ELSE CONVERT(VARCHAR, YEAR(GETDATE()) - 2) + '-10-01'
+        THEN CONVERT(VARCHAR, YEAR(GETDATE()) - 2) + '-10-01'
+        ELSE CONVERT(VARCHAR, YEAR(GETDATE()) - 1) + '-10-01'
 	END;
 
 -- Narrow down the pool of publications to:
@@ -42,9 +40,8 @@ with relevant_pubs as (
  				on eschol_pr.[Publication ID] = p.id
  				and eschol_pr.[oa-location-url] is not null
 	where
-		(	p.[Reporting Date 1] > @fiscal_year_cutoff
-			or p.[publication-date] > @fiscal_year_cutoff)
-		and pr.[Created When] >= @time_window
+		p.[Reporting Date 1] > @fiscal_year_cutoff
+		or p.[publication-date] > @fiscal_year_cutoff
 	group by
 		p.id,
 		pp.ID,
