@@ -115,7 +115,7 @@ select
 	p.[Reporting Date 1],
 	p.[publication-date],
 	rp.[Record Created When],
-	p.[created when] as [Pub Created When]
+	p.[Date Created in Elements] as [Pub Date Created in Elements]
 from
 	relevant_pubs rp
 		join [Publication] p

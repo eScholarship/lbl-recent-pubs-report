@@ -69,7 +69,7 @@ select
 	max(pub_pr.[oa-location-url]) as [New pub OA location],
 	clp.author_names as 'Claimed LBL Authors',
 	plp.author_names as 'Pending LBL Authors',
-	CONVERT(date, p.[Created When]) as [New Pub Created],
+	CONVERT(date, p.[Date Created in Elements]) as [New Pub Created],
 	p.[Reporting Date 1] as [New Pub RD1],
 	p.[publication-date] as [New Pub Publication Date]
 from [Publication] p
@@ -90,7 +90,7 @@ from [Publication] p
 	left join claimed_lbl_pubs clp
 		on p.id = clp.ID
 where
-	p.[Created When] > @time_window
+	p.[Date Created in Elements] > @time_window
 	and p.id not in (
 		select distinct pr.[Publication ID]
 		from [Publication Record] pr
@@ -110,6 +110,6 @@ group by
 	prf.[File URL],
 	clp.author_names,
 	plp.author_names,
-	p.[Created When],
+	p.[Date Created in Elements],
 	p.[Reporting Date 1],
 	p.[publication-date];
