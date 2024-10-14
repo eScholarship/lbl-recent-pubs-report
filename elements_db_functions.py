@@ -1,7 +1,7 @@
 import pyodbc
 
 
-def get_new_lbl_pub_records(sql_creds, input_file):
+def get_new_lbl_pub_records(creds, input_file):
 
     # Load SQL file
     sql_file = open(input_file)
@@ -9,11 +9,11 @@ def get_new_lbl_pub_records(sql_creds, input_file):
 
     # Connect to Elements reporting db
     conn = pyodbc.connect(
-        driver=sql_creds['driver'],
-        server=(sql_creds['server'] + ',' + sql_creds['port']),
-        database=sql_creds['database'],
-        uid=sql_creds['user'],
-        pwd=sql_creds['password'],
+        driver=creds['ELEMENTS_REPORTING_DB_DRIVER'],
+        server=(creds['ELEMENTS_REPORTING_DB_SERVER'] + ',' + creds['ELEMENTS_REPORTING_DB_PORT']),
+        database=creds['ELEMENTS_REPORTING_DB_DATABASE'],
+        uid=creds['ELEMENTS_REPORTING_DB_USER'],
+        pwd=creds['ELEMENTS_REPORTING_DB_PASSWORD'],
         trustservercertificate='yes')
 
     print(f"Connected to Elements reporting DB, querying: {input_file}")

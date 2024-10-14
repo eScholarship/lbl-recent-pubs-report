@@ -3,24 +3,26 @@ import elements_db_functions
 import csv
 from datetime import datetime
 import subprocess
+from dotenv import dotenv_values
 
 
 def main():
-    sql_creds = creds.elements_reporting_db_server_prod
+    creds = dotenv_values()
+    # sql_creds = creds.elements_reporting_db_server_prod
 
     # 90 days
     new_ninety_day_pub_records = elements_db_functions.get_new_lbl_pub_records(
-        sql_creds, "lbl-new-pub-records-ninety-days.sql")
+        creds, "lbl-new-pub-records-ninety-days.sql")
     ninety_day_file = write_csv_file(new_ninety_day_pub_records, "LBL-90-Day-pub-records")
 
     # 3 fiscal years
     new_fiscal_year_pub_records = elements_db_functions.get_new_lbl_pub_records(
-        sql_creds, "lbl-new-pub-records-one-fiscal-year.sql")
+        creds, "lbl-new-pub-records-one-fiscal-year.sql")
     three_year_file = write_csv_file(new_fiscal_year_pub_records, "LBL-one-fiscal-year-pub-records")
 
     # New 90-day pubs with preprint files available
     new_pubs_with_preprints = elements_db_functions.get_new_lbl_pub_records(
-        sql_creds, "lbl-new-pubs-with-preprint-files-available.sql")
+        creds, "lbl-new-pubs-with-preprint-files-available.sql")
     with_preprint_file = write_csv_file(new_pubs_with_preprints, "LBL-90-day-pubs-with-preprint-files")
 
     # Set up the mail process with attachment and email recipients
@@ -29,7 +31,7 @@ def main():
                         '-a', ninety_day_file,
                         '-a', three_year_file,
                         '-a', with_preprint_file]
-    subprocess_setup += creds.email_recipients
+    subprocess_setup += [creds['DEVIN'], creds['GEOFF']]
 
     # Text in the email body
     input_byte_string = b'''The attached CSV files show:
