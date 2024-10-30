@@ -1,4 +1,3 @@
-import creds
 import elements_db_functions
 import csv
 from datetime import datetime
@@ -24,6 +23,11 @@ def main():
     new_pubs_with_preprints = elements_db_functions.get_new_lbl_pub_records(
         creds, "lbl-new-pubs-with-preprint-files-available.sql")
     with_preprint_file = write_csv_file(new_pubs_with_preprints, "LBL-90-day-pubs-with-preprint-files")
+
+    # Embargoed pubs pubs
+    new_pubs_with_preprints = elements_db_functions.get_new_lbl_pub_records(
+        creds, "lbl-embargoed-pubs.sql")
+    with_preprint_file = write_csv_file(new_pubs_with_preprints, "lbl-embargoed-pubs")
 
     # Set up the mail process with attachment and email recipients
     subprocess_setup = ['mail',
@@ -56,6 +60,11 @@ LBL-90-day-pubs-with-preprint-files:
 - Created in the past 90 days
 - Without file deposits (OA Locations are noted when available)
 - And have a related "preprint" publication with a file.
+
+
+LBL-embargoed-pubs:
+- Any pubs claimed by an LBL author with an embargo date after "now."
+- Funding info included where available.
 '''
 
     # Run the subprocess with EOT input to send
