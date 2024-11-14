@@ -3,9 +3,11 @@ BEGIN TRANSACTION;
 
 DECLARE @fiscal_year_cutoff date =
 	CASE WHEN (MONTH(GETDATE()) >= 10)
-        THEN CONVERT(VARCHAR, YEAR(GETDATE()) - 2) + '-10-01'
-        ELSE CONVERT(VARCHAR, YEAR(GETDATE()) - 1) + '-10-01'
+        THEN CONVERT(VARCHAR, YEAR(GETDATE()) - 1) + '-10-01'
+        ELSE CONVERT(VARCHAR, YEAR(GETDATE()) - 2) + '-10-01'
 	END;
+
+DECLARE @user_limit tinyint = 10;
 
 -- Narrow down the pool of publications to:
 -- The publication window; Only pubs with file deposits.
@@ -51,51 +53,82 @@ with relevant_pubs as (
 		prf.[File URL],
 		eschol_pr.[oa-location-url]
 ),
-claimed_rp as (
+claimed_users as (
 	select
-		distinct rp.[Publication ID],
-		STRING_AGG(
-			case
-				when claimed_u.[Primary Group Descriptor] like('%-lbl-%')
-					THEN CONCAT('(Joint) ', claimed_u.[Computed Name Full])
-				else claimed_u.[Computed Name Full]
-			end
-			, '; '
-		) as [LBL Authors]
+		distinct
+			rp.[Publication ID],
+			ROW_NUMBER() OVER (
+				PARTITION BY rp.[Publication ID]
+				ORDER BY u.[ID] ASC) as [row_number],
+			u.[ID],
+			u.[Computed Name Full],
+			u.[Primary Group Descriptor]
 	from
 		relevant_pubs rp
 			join [Publication User Relationship] pur
 				on rp.[Publication ID] = pur.[Publication ID]
-			join [User] claimed_u
-				on claimed_u.id = pur.[User ID]
-				and claimed_u.[Primary Group Descriptor] like ('%lbl-%')
-	group by
-		rp.[Publication ID]
+			join [User] u
+				on u.id = pur.[User ID]
+				and u.[Primary Group Descriptor] like ('%lbl-%')
 ),
-pending_rp as (
+claimed_rp as (
 	select
-		distinct rp.[Publication ID],
+		distinct claimed_users.[Publication ID],
 		STRING_AGG(
 			case
-				when pending_u.[Primary Group Descriptor] like('%-lbl-%')
-					THEN CONCAT('(Joint) ', pending_u.[Computed Name Full])
-				else pending_u.[Computed Name Full]
+				when claimed_users.[Primary Group Descriptor] like('%-lbl-%')
+					THEN CONCAT('(Joint) ', claimed_users.[Computed Name Full])
+				else claimed_users.[Computed Name Full]
 			end
 			, '; '
 		) as [LBL Authors]
 	from
+		claimed_users
+	where
+		claimed_users.[row_number] <= @user_limit
+	group by
+		claimed_users.[Publication ID]
+),
+pending_users as (
+	select
+		distinct rp.[Publication ID],
+		ROW_NUMBER() OVER (
+			PARTITION BY rp.[Publication ID]
+			ORDER BY u.[ID] ASC) as [row_number],
+		u.[ID],
+		u.[Computed Name Full],
+		u.[Primary Group Descriptor]
+	from
 		relevant_pubs rp
 			join [Pending Publication] pp
 				on rp.[Pending Publication ID] = pp.ID
-			join [User] pending_u
-				on pp.[User ID] = pending_u.ID
-				and pending_u.[Primary Group Descriptor] like ('%lbl-%')
+			join [User] u
+				on pp.[User ID] = u.ID
+				and u.[Primary Group Descriptor] like ('%lbl-%')
+),
+pending_rp as (
+	select
+		distinct pending_users.[Publication ID],
+		STRING_AGG(
+			case
+				when pending_users.[Primary Group Descriptor] like('%-lbl-%')
+					THEN CONCAT('(Joint) ', pending_users.[Computed Name Full])
+				else pending_users.[Computed Name Full]
+			end
+			, '; '
+		) as [LBL Authors]
+	from
+		pending_users
+	where
+		pending_users.[row_number] <= @user_limit
 	group by
-		rp.[Publication ID]
+		pending_users.[Publication ID]
 )
 select
 	distinct rp.[Publication ID],
-	CONCAT('https://oapolicy.universityofcalifornia.edu/viewobject.html?cid=1&id=',rp.[Publication ID]) as [Elements URL],
+	CONCAT(
+		'https://oapolicy.universityofcalifornia.edu/viewobject.html?cid=1&id=',
+		rp.[Publication ID]) as [Elements URL],
 	p.[Title],
 	p.[doi],
 	p.[Type],

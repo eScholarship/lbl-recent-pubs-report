@@ -7,14 +7,13 @@ from dotenv import dotenv_values
 
 def main():
     creds = dotenv_values()
-    # sql_creds = creds.elements_reporting_db_server_prod
 
     # 90 days
     new_ninety_day_pub_records = elements_db_functions.get_new_lbl_pub_records(
         creds, "lbl-new-pub-records-ninety-days.sql")
     ninety_day_file = write_csv_file(new_ninety_day_pub_records, "LBL-90-Day-pub-records")
 
-    # 3 fiscal years
+    # 1 fiscal year
     new_fiscal_year_pub_records = elements_db_functions.get_new_lbl_pub_records(
         creds, "lbl-new-pub-records-one-fiscal-year.sql")
     three_year_file = write_csv_file(new_fiscal_year_pub_records, "LBL-one-fiscal-year-pub-records")
@@ -25,17 +24,18 @@ def main():
     with_preprint_file = write_csv_file(new_pubs_with_preprints, "LBL-90-day-pubs-with-preprint-files")
 
     # Embargoed pubs pubs
-    new_pubs_with_preprints = elements_db_functions.get_new_lbl_pub_records(
+    new_embargoed_pubs = elements_db_functions.get_new_lbl_pub_records(
         creds, "lbl-embargoed-pubs.sql")
-    with_preprint_file = write_csv_file(new_pubs_with_preprints, "lbl-embargoed-pubs")
+    embargoed_file = write_csv_file(new_embargoed_pubs, "lbl-embargoed-pubs")
 
     # Set up the mail process with attachment and email recipients
     subprocess_setup = ['mail',
                         '-s', 'New LBL pub records without eSchol deposits',
                         '-a', ninety_day_file,
                         '-a', three_year_file,
-                        '-a', with_preprint_file]
-    subprocess_setup += [creds['DEVIN'], creds['GEOFF']]
+                        '-a', with_preprint_file,
+                        '-a', embargoed_file]
+    subprocess_setup += [creds['DEVIN'], creds['GEOFF'], creds['ALAINNA']]
 
     # Text in the email body
     input_byte_string = b'''The attached CSV files show:
