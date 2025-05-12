@@ -1,11 +1,12 @@
 SET TRANSACTION ISOLATION LEVEL SNAPSHOT
 BEGIN TRANSACTION;
 
-DECLARE @fiscal_year_cutoff date =
-	CASE WHEN (MONTH(GETDATE()) >= 10)
-        THEN CONVERT(VARCHAR, YEAR(GETDATE()) - 1) + '-10-01'
-        ELSE CONVERT(VARCHAR, YEAR(GETDATE()) - 2) + '-10-01'
-	END;
+DECLARE @fiscal_year_cutoff date = '2023-10-01';
+--DECLARE @fiscal_year_cutoff date =
+--	CASE WHEN (MONTH(GETDATE()) >= 10)
+--        THEN CONVERT(VARCHAR, YEAR(GETDATE()) - 3) + '-10-01'
+--        ELSE CONVERT(VARCHAR, YEAR(GETDATE()) - 2) + '-10-01'
+--	END;
 
 DECLARE @user_limit tinyint = 10;
 
