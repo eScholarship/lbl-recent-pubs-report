@@ -13,12 +13,14 @@ with pending_lbl_pubs as (
 	SELECT
 		distinct pp.[Publication ID] as ID,
 		STRING_AGG(
-			case
-				when u.[Primary Group Descriptor] like('%-lbl-%')
-					THEN CONCAT('(Joint) ', u.[Computed Name Full])
-				else u.[Computed Name Full]
-			end
-			, '; '
+            CONVERT(
+				NVARCHAR(MAX),
+                case
+                    when u.[Primary Group Descriptor] like('%-lbl-%')
+                        THEN CONCAT('(Joint) ', u.[Computed Name Full])
+                    else u.[Computed Name Full]
+                end)
+                , '; '
 		) as [author_names]
 	FROM [Pending Publication] pp
 		join
@@ -37,12 +39,14 @@ claimed_lbl_pubs as (
 	select
 		distinct p.ID,
 		STRING_AGG(
-			case
-				when u.[Primary Group Descriptor] like('%-lbl-%')
-					THEN CONCAT('(Joint) ', u.[Computed Name Full])
-				else u.[Computed Name Full]
-			end
-			, '; '
+            CONVERT(
+				NVARCHAR(MAX),
+                case
+                    when u.[Primary Group Descriptor] like('%-lbl-%')
+                        THEN CONCAT('(Joint) ', u.[Computed Name Full])
+                    else u.[Computed Name Full]
+                end)
+                , '; '
 		) as author_names
 	from Publication p
 		join [Publication User Relationship] pur

@@ -58,12 +58,14 @@ claimed_rp as (
 	select
 		distinct rp.[Publication ID],
 		STRING_AGG(
-			case
-				when claimed_u.[Primary Group Descriptor] like('%-lbl-%')
-					THEN CONCAT('(Joint) ', claimed_u.[Computed Name Full])
-				else claimed_u.[Computed Name Full]
-			end
-			, '; '
+		    CONVERT(
+				NVARCHAR(MAX),
+                case
+                    when claimed_u.[Primary Group Descriptor] like('%-lbl-%')
+                        THEN CONCAT('(Joint) ', claimed_u.[Computed Name Full])
+                    else claimed_u.[Computed Name Full]
+                end)
+                , '; '
 		) as [LBL Authors]
 	from
 		relevant_pubs rp
@@ -79,12 +81,14 @@ pending_rp as (
 	select
 		distinct rp.[Publication ID],
 		STRING_AGG(
-			case
-				when pending_u.[Primary Group Descriptor] like('%-lbl-%')
-					THEN CONCAT('(Joint) ', pending_u.[Computed Name Full])
-				else pending_u.[Computed Name Full]
-			end
-			, '; '
+            CONVERT(
+				NVARCHAR(MAX),
+                case
+                    when pending_u.[Primary Group Descriptor] like('%-lbl-%')
+                        THEN CONCAT('(Joint) ', pending_u.[Computed Name Full])
+                    else pending_u.[Computed Name Full]
+                end)
+                , '; '
 		) as [LBL Authors]
 	from
 		relevant_pubs rp
