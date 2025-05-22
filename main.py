@@ -13,6 +13,10 @@ def main():
         creds, "lbl-new-pub-records-ninety-days.sql")
     ninety_day_file = write_csv_file(new_ninety_day_pub_records, "LBL-90-Day-pub-records")
 
+    new_ninety_day_pub_records = elements_db_functions.get_new_lbl_pub_records(
+        creds, "lbl-new-pub-records-ninety-days-oap-only.sql")
+    ninety_day_oap_file = write_csv_file(new_ninety_day_pub_records, "LBL-90-Day-pub-records-OAP-only")
+
     # 1 fiscal year
     new_fiscal_year_pub_records = elements_db_functions.get_new_lbl_pub_records(
         creds, "lbl-new-pub-records-one-fiscal-year.sql")
@@ -32,6 +36,7 @@ def main():
     subprocess_setup = ['mail',
                         '-s', 'New LBL pub records without eSchol deposits',
                         '-a', ninety_day_file,
+                        '-a', ninety_day_oap_file,
                         '-a', three_year_file,
                         '-a', with_preprint_file,
                         '-a', embargoed_file]
@@ -49,6 +54,8 @@ LBL-90-Day-pub-records:
   -  Pub type Journal Article > Preprint
   -  Claimed authors > Pending authors
 
+  
++ The same report, but only items covered by LBL OA Policies.
 
 LBL-one-fiscal-year-pub-records:
 - Same as above, but without the 90-day cutoff.
