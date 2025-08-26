@@ -5,7 +5,7 @@ select
 	pr.[Data Source Proprietary ID] as [eschol_id],
 	p.[embargo-release-date],
 	p.[publication-date],
-	STRING_AGG(g.[funder-name], ';') as [funder_names],
+	STRING_AGG(g.[funder name], ';') as [funder_names],
 	STRING_AGG(g.[funder-reference], ';') as [funder_references]
 from Publication p
 	join [Publication Record] pr

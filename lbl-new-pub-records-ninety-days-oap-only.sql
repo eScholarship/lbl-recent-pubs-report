@@ -3,12 +3,12 @@ BEGIN TRANSACTION;
 
 DECLARE @time_window AS DATE = DATEADD(day,-90, GETDATE());
 
-DECLARE @fiscal_year_cutoff date = '2023-10-01';
---DECLARE @fiscal_year_cutoff date =
---	CASE WHEN (MONTH(GETDATE()) >= 10)
---        THEN CONVERT(VARCHAR, YEAR(GETDATE()) - 3) + '-10-01'
---        ELSE CONVERT(VARCHAR, YEAR(GETDATE()) - 2) + '-10-01'
---	END;
+DECLARE @fiscal_year_cutoff AS DATE = CASE
+	WHEN MONTH(GETDATE()) >= 10 THEN
+		CAST(CONCAT(YEAR(DATEADD(YEAR, -2, GETDATE())), '-10-01') AS DATE)
+	ELSE
+		CAST(CONCAT(YEAR(DATEADD(YEAR, -3, GETDATE())),'-10-01') AS DATE)
+	END;
 
 -- Narrow down the pool of publications to:
 -- The publication window; Only pubs with file deposits.
@@ -21,7 +21,7 @@ with relevant_pubs as (
 		pr.[Data Source Proprietary ID],
 		prf.[File URL],
 		eschol_pr.[oa-location-url],
-		STRING_AGG(oap.name, ';') as 'OA Policies'
+		STRING_AGG(oas.Description, ';') as 'OA Policies'
 	from
 		[Pending Publication] pp
 			full outer join [Publication] p
@@ -40,11 +40,11 @@ with relevant_pubs as (
 			join [Publication record file] prf
 				on pr.id = prf.[Publication Record ID]
  				and prf.[Index] = 0
- 			join [publication oa policy] poap
- 				on poap.[publication id] = p.ID
- 			join [OA policy] oap
- 				on poap.[oa policy id] = oap.id
- 				and oap.name like '%LBL%'
+ 			join [Publication OA Scheme State] poss
+ 				on poss.[publication id] = p.ID
+ 			join [OA Scheme] oas
+ 				on poss.[oa Scheme id] = oas.id
+ 				and oas.Description like '%LBL%'
  			left join [Publication Record] eschol_pr
  				on eschol_pr.[Publication ID] = p.id
  				and eschol_pr.[oa-location-url] is not null
