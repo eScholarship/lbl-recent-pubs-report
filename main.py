@@ -72,6 +72,11 @@ LBL-90-day-pubs-with-preprint-files:
 LBL-embargoed-pubs:
 - Any pubs claimed by an LBL author with an embargo date after "now."
 - Funding info included where available.
+
+
+---
+
+Future-proofing: This is an automated email sent from the pub-oapi-tools stack. The Repo for this program is https://github.com/eScholarship/lbl-recent-pubs-report
 '''
 
     # Run the subprocess with EOT input to send
