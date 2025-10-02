@@ -2,6 +2,7 @@ import csv
 from datetime import datetime
 import subprocess
 import boto3
+import requests
 import pyodbc
 
 # Get AWS session
@@ -10,56 +11,44 @@ session = boto3.Session()
 
 def main():
 
+    # Input and output filenames
+    sql_files = [
+        {"input": "lbl-new-pub-records-ninety-days.sql",
+         "output": "LBL-90-Day-pub-records"},
+        {"input": "lbl-new-pub-records-ninety-days-oap-only.sql",
+         "output": "LBL-90-Day-pub-records-OAP-only"},
+        {"input": "lbl-new-pub-records-one-fiscal-year.sql",
+         "output": "LBL-one-fiscal-year-pub-records"},
+        {"input": "lbl-new-pubs-with-preprint-files-available.sql",
+         "output": "LBL-90-Day-pub-records"},
+        {"input": "lbl-new-pub-records-ninety-days.sql",
+         "output": "LBL-90-day-pubs-with-preprint-files"},
+        {"input": "lbl-embargoed-pubs.sql",
+         "output": "lbl-embargoed-pubs"}]
+
+    # Get reporting DB creds
     reporting_db_creds = get_ssm_parameters(
         folder="/pub-oapi-tools/elements-reporting-db/prod/",
         names=['driver', 'server', 'database', 'user', 'password'])
 
-    # 90 days
-    new_ninety_day_pub_records = get_new_lbl_pub_records(
-        reporting_db_creds, "lbl-new-pub-records-ninety-days.sql")
-    ninety_day_file = write_csv_file(
-        new_ninety_day_pub_records, "LBL-90-Day-pub-records")
-
-    new_ninety_day_pub_records = get_new_lbl_pub_records(
-        reporting_db_creds, "lbl-new-pub-records-ninety-days-oap-only.sql")
-    ninety_day_oap_file = write_csv_file(
-        new_ninety_day_pub_records, "LBL-90-Day-pub-records-OAP-only")
-
-    # 1 fiscal year
-    new_fiscal_year_pub_records = get_new_lbl_pub_records(
-        reporting_db_creds, "lbl-new-pub-records-one-fiscal-year.sql")
-    three_year_file = write_csv_file(
-        new_fiscal_year_pub_records, "LBL-one-fiscal-year-pub-records")
-
-    # New 90-day pubs with preprint files available
-    new_pubs_with_preprints = get_new_lbl_pub_records(
-        reporting_db_creds, "lbl-new-pubs-with-preprint-files-available.sql")
-    with_preprint_file = write_csv_file(
-        new_pubs_with_preprints, "LBL-90-day-pubs-with-preprint-files")
-
-    # Embargoed pubs pubs
-    new_embargoed_pubs = get_new_lbl_pub_records(
-        reporting_db_creds, "lbl-embargoed-pubs.sql")
-    embargoed_file = write_csv_file(
-        new_embargoed_pubs, "lbl-embargoed-pubs")
+    # Loops sql_files, saving .csvs and adding the filename for email attachments.
+    for file in sql_files:
+        records = get_new_lbl_pub_records(reporting_db_creds, file['input'])
+        file['output_file'] = write_csv_file(records, file['output'])
 
     # Set up the mail process with attachment and email recipients
+    subprocess_setup = ['mail', '-s', 'New LBL pub records without eSchol deposits']
+    for file in sql_files:
+        subprocess_setup += ['-a', file['output_file']]
+
     email_creds = get_ssm_parameters(
         folder="/pub-oapi-tools/emails",
         names=['devin', 'geoff', 'alainna'])
 
-    subprocess_setup = ['mail',
-                        '-s', 'New LBL pub records without eSchol deposits',
-                        '-a', ninety_day_file,
-                        '-a', ninety_day_oap_file,
-                        '-a', three_year_file,
-                        '-a', with_preprint_file,
-                        '-a', embargoed_file]
-
     subprocess_setup += [
-        email_creds['DEVIN'],
-        email_creds['GEOFF'],
-        email_creds['ALAINNA']]
+        email_creds['devin'],
+        email_creds['geoff'],
+        email_creds['alainna']]
 
     # Text in the email body
     input_byte_string = b'''The attached CSV files show:
@@ -130,10 +119,10 @@ def get_ssm_parameters(folder, names):
 
 # Query the reporting DB and return the data
 def get_new_lbl_pub_records(creds, input_file):
-
-    # Load SQL file
-    sql_file = open(input_file)
-    sql_query = sql_file.read()
+    # Load the sql file data from Github
+    github_raw_link = "https://raw.githubusercontent.com/eScholarship/lbl-recent-pubs-report/main/"
+    response = requests.get(f"{github_raw_link}{input_file}")
+    sql_query = response.text
 
     # Connect to Elements reporting db
     conn = pyodbc.connect(
@@ -154,7 +143,6 @@ def get_new_lbl_pub_records(creds, input_file):
     rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
     return rows
-
 
 
 # Stub for main
