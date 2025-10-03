@@ -28,7 +28,7 @@ def main():
 
     # Get reporting DB creds
     reporting_db_creds = get_ssm_parameters(
-        folder="/pub-oapi-tools/elements-reporting-db/prod/",
+        folder="/pub-oapi-tools/elements-reporting-db/prod",
         names=['driver', 'server', 'database', 'user', 'password'])
 
     # Loops sql_files, saving .csvs and adding the filename for email attachments.
@@ -107,7 +107,7 @@ def get_ssm_parameters(folder, names):
     print("Connect to SSM for parameters")
     ssm_client = session.client(service_name='ssm', region_name='us-west-2')
 
-    param_names = [f"{folder}{name}" for name in names]
+    param_names = [f"{folder}/{name}" for name in names]
     response = ssm_client.get_parameters(Names=param_names, WithDecryption=True)
 
     param_values = {
