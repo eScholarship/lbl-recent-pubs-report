@@ -1,12 +1,11 @@
+from pub_oapi_tools_common import ucpms_db
+from pub_oapi_tools_common import aws_lambda
+from pub_oapi_tools_common.misc import log
+
 import csv
 from datetime import datetime
 import subprocess
-import boto3
 import requests
-import pyodbc
-
-# Get AWS session
-session = boto3.Session()
 
 
 def main():
@@ -26,14 +25,9 @@ def main():
         {"input": "lbl-embargoed-pubs.sql",
          "output": "lbl-embargoed-pubs"}]
 
-    # Get reporting DB creds
-    reporting_db_creds = get_ssm_parameters(
-        folder="/pub-oapi-tools/elements-reporting-db/prod",
-        names=['driver', 'server', 'database', 'user', 'password'])
-
     # Loops sql_files, saving .csvs and adding the filename for email attachments.
     for file in sql_files:
-        records = get_new_lbl_pub_records(reporting_db_creds, file['input'])
+        records = get_new_lbl_pub_records(file['input'])
         file['output_file'] = write_csv_file(records, file['output'])
 
     # Set up the mail process with attachment and email recipients
@@ -41,54 +35,19 @@ def main():
     for file in sql_files:
         subprocess_setup += ['-a', file['output_file']]
 
-    email_creds = get_ssm_parameters(
-        folder="/pub-oapi-tools/emails",
-        names=['devin', 'geoff', 'alainna'])
+    email_creds = aws_lambda.get_parameters(
+        {"email_addresses": {
+            "folder": "pub-oapi-tools/emails",
+            "names": ['devin', 'geoff', 'alainna']}})
+    subprocess_setup += email_creds['email_addresses'].values()
 
-    subprocess_setup += [
-        email_creds['devin'],
-        email_creds['geoff'],
-        email_creds['alainna']]
-
-    # Text in the email body
-    input_byte_string = b'''The attached CSV files show:
-    
-LBL-90-Day-pub-records:
-- Pubs without eScholarship records having an associated file deposit.
-  - eSchol OA location URLS are listed where present. 
-- with EuroPMC or arXive publication records
-- with a Publication "Reporting Date 1" from the past 90 days.
-- The sheet is ordered by "most likely candidates" first:
-  -  Pub type Journal Article > Preprint
-  -  Claimed authors > Pending authors
-
-  
-+ The same report, but only items covered by LBL OA Policies.
-
-LBL-one-fiscal-year-pub-records:
-- Same as above, but without the 90-day cutoff.
-- Records are pulled from the start of the previous fiscal year.
-
-
-LBL-90-day-pubs-with-preprint-files:
-- New LBL publications
-- Created in the past 90 days
-- Without file deposits (OA Locations are noted when available)
-- And have a related "preprint" publication with a file.
-
-
-LBL-embargoed-pubs:
-- Any pubs claimed by an LBL author with an embargo date after "now."
-- Funding info included where available.
-
-
----
-
-Future-proofing: This is an automated email sent from the pub-oapi-tools stack. The Repo for this program is https://github.com/eScholarship/lbl-recent-pubs-report
-'''
+    # Email body text
+    input_byte_string = get_email_body_text()
 
     # Run the subprocess with EOT input to send
-    subprocess.run(subprocess_setup, input=input_byte_string, capture_output=True)
+    subprocess.run(subprocess_setup,
+                   input=input_byte_string,
+                   capture_output=True)
 
 
 # Writes the CSV and returns the filename for email attachment
@@ -102,47 +61,63 @@ def write_csv_file(data, filename):
     return filename_with_date
 
 
-# Parses data from parameter store
-def get_ssm_parameters(folder, names):
-    print("Connect to SSM for parameters")
-    ssm_client = session.client(service_name='ssm', region_name='us-west-2')
-
-    param_names = [f"{folder}/{name}" for name in names]
-    response = ssm_client.get_parameters(Names=param_names, WithDecryption=True)
-
-    param_values = {
-        (param['Name'].split('/')[-1]): param['Value']
-        for param in response['Parameters']}
-
-    return param_values
-
-
 # Query the reporting DB and return the data
-def get_new_lbl_pub_records(creds, input_file):
+def get_new_lbl_pub_records(input_file):
     # Load the sql file data from Github
     github_raw_link = "https://raw.githubusercontent.com/eScholarship/lbl-recent-pubs-report/main/"
     response = requests.get(f"{github_raw_link}{input_file}")
     sql_query = response.text
 
-    # Connect to Elements reporting db
-    conn = pyodbc.connect(
-        driver=creds['driver'],
-        server=(creds['server'] + ',1433'),
-        database=creds['database'],
-        uid=creds['user'],
-        pwd=creds['password'],
-        trustservercertificate='yes')
-
-    print(f"Connected to Elements reporting DB, querying: {input_file}")
-    conn.autocommit = True  # Required when queries use TRANSACTION
-    cursor = conn.cursor()
-    cursor.execute(sql_query)
-
-    # pyodbc doesn't return dicts automatically, we have to make them ourselves
-    columns = [column[0] for column in cursor.description]
-    rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+    conn = ucpms_db.get_connection(env="prod")
+    log("INFO", __name__,
+        f"Connected to Elements reporting DB, querying: {input_file}")
+    with conn.cursor() as cursor:
+        cursor.execute(sql_query)
+        rows = ucpms_db.get_dict_list(cursor)
+        cursor.close()
+    conn.close()
 
     return rows
+
+
+def get_email_body_text():
+    return(
+        b'''The attached CSV files show:
+
+    LBL-90-Day-pub-records:
+    - Pubs without eScholarship records having an associated file deposit.
+      - eSchol OA location URLS are listed where present. 
+    - with EuroPMC or arXive publication records
+    - with a Publication "Reporting Date 1" from the past 90 days.
+    - The sheet is ordered by "most likely candidates" first:
+      -  Pub type Journal Article > Preprint
+      -  Claimed authors > Pending authors
+
+
+    + The same report, but only items covered by LBL OA Policies.
+
+    LBL-one-fiscal-year-pub-records:
+    - Same as above, but without the 90-day cutoff.
+    - Records are pulled from the start of the previous fiscal year.
+
+
+    LBL-90-day-pubs-with-preprint-files:
+    - New LBL publications
+    - Created in the past 90 days
+    - Without file deposits (OA Locations are noted when available)
+    - And have a related "preprint" publication with a file.
+
+
+    LBL-embargoed-pubs:
+    - Any pubs claimed by an LBL author with an embargo date after "now."
+    - Funding info included where available.
+
+
+    ---
+
+    Future-proofing: This is an automated email sent from the pub-oapi-tools stack. 
+    The Repo for this program is https://github.com/eScholarship/lbl-recent-pubs-report
+    ''')
 
 
 # Stub for main
